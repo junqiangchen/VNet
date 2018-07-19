@@ -12,14 +12,12 @@ download dataset：https://promise12.grand-challenge.org/download/
 
 ## Result
 
-the loss and model result
+the loss and model result，the example
 ![](loss.PNG)
 
 ![](vnet.PNG)
 
-the example
 ![](result.PNG)
-
 
 ## Contact
 * https://github.com/junqiangchen
