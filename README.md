@@ -10,10 +10,16 @@ training the model on the GTX1080,it take 20 hours,and i also attach the trained
 
 download dataset：https://promise12.grand-challenge.org/download/
 
+## Result
+
 the loss and model result
 ![](loss.PNG)
 
 ![](vnet.PNG)
+
+the example
+![](result.PNG)
+
 
 ## Contact
 * https://github.com/junqiangchen
