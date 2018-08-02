@@ -1,30 +1,31 @@
 '''
 
 '''
-from Vnet2d.layer import (conv2d, deconv2d, crop_and_concat, resnet_Add, weight_xavier_init, bias_variable)
+from Vnet2d.layer import (conv2d, deconv2d, normalizationlayer, crop_and_concat, resnet_Add, weight_xavier_init,
+                          bias_variable)
 import tensorflow as tf
 import numpy as np
 import cv2
 
 
-def conv_bn_relu_drop(x, kernalshape, phase, drop_conv, scope=None):
+def conv_bn_relu_drop(x, kernalshape, phase, drop_conv, height=None, width=None, scope=None):
     with tf.name_scope(scope):
         W = weight_xavier_init(shape=kernalshape, n_inputs=kernalshape[0] * kernalshape[1] * kernalshape[2],
                                n_outputs=kernalshape[-1], activefuncation='relu', variable_name=scope + 'W')
         B = bias_variable([kernalshape[-1]], variable_name=scope + 'B')
         conv = conv2d(x, W) + B
-        conv = tf.contrib.layers.batch_norm(conv, center=True, scale=True, is_training=phase, scope=scope + 'bn')
-        conv = tf.nn.dropout(tf.nn.relu(conv),drop_conv)
+        conv = normalizationlayer(conv, phase, height=height, width=width, norm_type='group', scope=scope)
+        conv = tf.nn.dropout(tf.nn.relu(conv), drop_conv)
         return conv
 
 
-def down_sampling(x, kernalshape, phase, drop_conv, scope=None):
+def down_sampling(x, kernalshape, phase, drop_conv, height=None, width=None, scope=None):
     with tf.name_scope(scope):
         W = weight_xavier_init(shape=kernalshape, n_inputs=kernalshape[0] * kernalshape[1] * kernalshape[2],
                                n_outputs=kernalshape[-1], activefuncation='relu', variable_name=scope + 'W')
         B = bias_variable([kernalshape[-1]], variable_name=scope + 'B')
         conv = conv2d(x, W, 2) + B
-        conv = tf.contrib.layers.batch_norm(conv, center=True, scale=True, is_training=phase, scope=scope + 'bn')
+        conv = normalizationlayer(conv, phase, height=height, width=width, norm_type='group', scope=scope)
         conv = tf.nn.dropout(tf.nn.relu(conv), drop_conv)
         return conv
 
@@ -101,52 +102,57 @@ def _create_conv_net(X, image_width, image_height, image_channel, phase, drop_co
     layer6 = conv_bn_relu_drop(x=layer6, kernalshape=(3, 3, 512, 512), phase=phase, drop_conv=drop_conv,
                                scope='layer6_2')
     layer6 = resnet_Add(x1=down5, x2=layer6)
-    # deconv1->deconvolution
+    # layer7->deconvolution
     deconv1 = deconv_relu_drop(x=layer6, kernalshape=(3, 3, 256, 512), scope='deconv1')
-    # layer7->convolution
+    # layer8->convolution
     layer7 = crop_and_concat(layer5, deconv1)
-    layer7 = conv_bn_relu_drop(x=layer7, kernalshape=(3, 3, 512, 256), phase=phase, drop_conv=drop_conv,
-                               scope='layer7_1')
-    layer7 = conv_bn_relu_drop(x=layer7, kernalshape=(3, 3, 256, 256), phase=phase, drop_conv=drop_conv,
-                               scope='layer7_2')
+    _, H, W, _ = layer5.get_shape().as_list()
+    layer7 = conv_bn_relu_drop(x=layer7, kernalshape=(3, 3, 512, 256), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer7_1')
+    layer7 = conv_bn_relu_drop(x=layer7, kernalshape=(3, 3, 256, 256), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer7_2')
     layer7 = resnet_Add(x1=deconv1, x2=layer7)
-    # deconv2->deconvolution
+    # layer9->deconvolution
     deconv2 = deconv_relu_drop(x=layer7, kernalshape=(3, 3, 128, 256), scope='deconv2')
     # layer8->convolution
     layer8 = crop_and_concat(layer4, deconv2)
-    layer8 = conv_bn_relu_drop(x=layer8, kernalshape=(3, 3, 256, 128), phase=phase, drop_conv=drop_conv,
-                               scope='layer8_1')
-    layer8 = conv_bn_relu_drop(x=layer8, kernalshape=(3, 3, 128, 128), phase=phase, drop_conv=drop_conv,
-                               scope='layer8_2')
+    _, H, W, _ = layer4.get_shape().as_list()
+    layer8 = conv_bn_relu_drop(x=layer8, kernalshape=(3, 3, 256, 128), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer8_1')
+    layer8 = conv_bn_relu_drop(x=layer8, kernalshape=(3, 3, 128, 128), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer8_2')
     layer8 = resnet_Add(x1=deconv2, x2=layer8)
-    # deconv3->deconvolution
+    # layer9->deconvolution
     deconv3 = deconv_relu_drop(x=layer8, kernalshape=(3, 3, 64, 128), scope='deconv3')
-    # layer9->convolution
+    # layer8->convolution
     layer9 = crop_and_concat(layer3, deconv3)
-    layer9 = conv_bn_relu_drop(x=layer9, kernalshape=(3, 3, 128, 64), phase=phase, drop_conv=drop_conv,
-                               scope='layer9_1')
-    layer9 = conv_bn_relu_drop(x=layer9, kernalshape=(3, 3, 64, 64), phase=phase, drop_conv=drop_conv,
-                               scope='layer9_2')
+    _, H, W, _ = layer3.get_shape().as_list()
+    layer9 = conv_bn_relu_drop(x=layer9, kernalshape=(3, 3, 128, 64), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer9_1')
+    layer9 = conv_bn_relu_drop(x=layer9, kernalshape=(3, 3, 64, 64), height=H, width=W, phase=phase,
+                               drop_conv=drop_conv, scope='layer9_2')
     layer9 = resnet_Add(x1=deconv3, x2=layer9)
-    # deconv4->deconvolution
+    # layer9->deconvolution
     deconv4 = deconv_relu_drop(x=layer9, kernalshape=(3, 3, 32, 64), scope='deconv4')
-    # layer10->convolution
+    # layer8->convolution
     layer10 = crop_and_concat(layer2, deconv4)
-    layer10 = conv_bn_relu_drop(x=layer10, kernalshape=(3, 3, 64, 32), phase=phase, drop_conv=drop_conv,
-                                scope='layer10_1')
-    layer10 = conv_bn_relu_drop(x=layer10, kernalshape=(3, 3, 32, 32), phase=phase, drop_conv=drop_conv,
-                                scope='layer10_2')
+    _, H, W, _ = layer2.get_shape().as_list()
+    layer10 = conv_bn_relu_drop(x=layer10, kernalshape=(3, 3, 64, 32), height=H, width=W, phase=phase,
+                                drop_conv=drop_conv, scope='layer10_1')
+    layer10 = conv_bn_relu_drop(x=layer10, kernalshape=(3, 3, 32, 32), height=H, width=W, phase=phase,
+                                drop_conv=drop_conv, scope='layer10_2')
     layer10 = resnet_Add(x1=deconv4, x2=layer10)
-    # deconv5->deconvolution
+    # layer9->deconvolution
     deconv5 = deconv_relu_drop(x=layer10, kernalshape=(3, 3, 16, 32), scope='deconv5')
-    # layer11->convolution
+    # layer8->convolution
     layer11 = crop_and_concat(layer1, deconv5)
-    layer11 = conv_bn_relu_drop(x=layer11, kernalshape=(3, 3, 32, 32), phase=phase, drop_conv=drop_conv,
-                                scope='layer11_1')
-    layer11 = conv_bn_relu_drop(x=layer11, kernalshape=(3, 3, 32, 32), phase=phase, drop_conv=drop_conv,
-                                scope='layer11_2')
+    _, H, W, _ = layer1.get_shape().as_list()
+    layer11 = conv_bn_relu_drop(x=layer11, kernalshape=(3, 3, 32, 32), height=H, width=W, phase=phase,
+                                drop_conv=drop_conv, scope='layer11_1')
+    layer11 = conv_bn_relu_drop(x=layer11, kernalshape=(3, 3, 32, 32), height=H, width=W, phase=phase,
+                                drop_conv=drop_conv, scope='layer11_2')
     layer11 = resnet_Add(x1=deconv5, x2=layer11)
-    # layerout->output
+    # layer14->output
     output_map = conv_sigmod(x=layer11, kernalshape=(1, 1, 32, n_class), scope='output')
     return output_map
 
@@ -182,7 +188,8 @@ class Vnet2dModule(object):
     :param costname: name of the cost function.Default is "cross_entropy"
     """
 
-    def __init__(self, image_height, image_width, channels=1, costname="dice coefficient"):
+    def __init__(self, image_height, image_width, channels=1, inference=False, model_path=None,
+                 costname="dice coefficient"):
         self.image_with = image_width
         self.image_height = image_height
         self.channels = channels
@@ -197,6 +204,12 @@ class Vnet2dModule(object):
 
         self.cost = self.__get_cost(costname)
         self.accuracy = -self.__get_cost(costname)
+        if inference:
+            init = tf.global_variables_initializer()
+            saver = tf.train.Saver()
+            self.sess = tf.InteractiveSession()
+            self.sess.run(init)
+            saver.restore(self.sess, model_path)
 
     def __get_cost(self, cost_name):
         H, W, C = self.Y_gt.get_shape().as_list()[1:]
@@ -215,7 +228,9 @@ class Vnet2dModule(object):
         return loss
 
     def train(self, train_images, train_lanbels, model_path, logs_path, learning_rate,
-              dropout_conv=0.5, train_epochs=10000, batch_size=4):
+              dropout_conv=0.8, train_epochs=1000, batch_size=1):
+        # vars = tf.trainable_variables()
+        # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars if 'W' in v.name]) * 0.5
         train_op = tf.train.AdamOptimizer(self.lr).minimize(self.cost)
 
         init = tf.global_variables_initializer()
@@ -282,20 +297,41 @@ class Vnet2dModule(object):
         save_path = saver.save(sess, model_path)
         print("Model saved in file:", save_path)
 
-    def prediction(self, model_path, test_images):
-        init = tf.global_variables_initializer()
-        saver = tf.train.Saver()
-        sess = tf.InteractiveSession()
-        sess.run(init)
-        saver.restore(sess, model_path)
-        test_images = true_img.astype(np.float)
+    def prediction_analysic(self):
+        costlist = []
+        for i in range(214):
+            true_img = cv2.imread("D:\Data\PROMISE2012\\test_Vnet\Image\\" + str(i + 1) + ".bmp", cv2.IMREAD_GRAYSCALE)
+            true_mask = cv2.imread("D:\Data\PROMISE2012\\test_Vnet\Image\\" + str(i + 1) + ".bmp",
+                                   cv2.IMREAD_GRAYSCALE)
+            test_images = true_img.astype(np.float)
+            true_mask = true_mask.astype(np.float)
+            # convert from [0:255] => [0.0:1.0]
+            test_images = np.multiply(test_images, 1.0 / 255.0)
+            test_mask = np.multiply(true_mask, 1.0 / 255.0)
+            test_images = np.reshape(test_images, (1, test_images.shape[0], test_images.shape[1], 1))
+            test_mask = np.reshape(test_mask, (1, test_mask.shape[0], test_mask.shape[1], 1))
+            pred, loss = self.sess.run([self.Y_pred, self.cost], feed_dict={self.X: test_images,
+                                                                            self.Y_gt: test_mask,
+                                                                            self.phase: 1,
+                                                                            self.drop_conv: 1})
+            result = np.reshape(pred, (test_images.shape[1], test_images.shape[2]))
+            result = result.astype(np.float32) * 255.
+            result = np.clip(result, 0, 255).astype('uint8')
+            cv2.imwrite("mask" + str(i + 1) + ".bmp", result)
+            print(loss)
+            costlist.append(loss)
+        print(np.mean(np.array(costlist)))
+
+    def prediction(self, test_images):
+        test_images = test_images.astype(np.float)
+        # convert from [0:255] => [0.0:1.0]
         test_images = np.multiply(test_images, 1.0 / 255.0)
         test_images = np.reshape(test_images, (1, test_images.shape[0], test_images.shape[1], 1))
-        pred = sess.run(self.Y_pred, feed_dict={self.X: test_images,
-                                                    self.Y_gt: test_images,
-                                                    self.phase: 1,
-                                                    self.drop_conv: 1})
+        pred = self.sess.run(self.Y_pred, feed_dict={self.X: test_images,
+                                                     self.Y_gt: test_images,
+                                                     self.phase: 1,
+                                                     self.drop_conv: 1})
         result = np.reshape(pred, (test_images.shape[1], test_images.shape[2]))
         result = result.astype(np.float32) * 255.
         result = np.clip(result, 0, 255).astype('uint8')
-        return test_images
+        return result

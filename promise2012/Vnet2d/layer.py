@@ -48,6 +48,33 @@ def conv2d(x, W, strides=1):
     return conv_2d
 
 
+def normalizationlayer(x, is_train, height=None, width=None, norm_type='None', G=16, esp=1e-5, scope=None):
+    with tf.name_scope(scope + norm_type):
+        if norm_type == 'None':
+            output = x
+        elif norm_type == 'batch':
+            output = tf.contrib.layers.batch_norm(x, center=True, scale=True, is_training=is_train)
+        elif norm_type == 'group':
+            # tranpose:[bs,h,w,c]to[bs,c,h,w]follwing the paper
+            x = tf.transpose(x, [0, 3, 1, 2])
+            N, C, H, W = x.get_shape().as_list()
+            G = min(G, C)
+            if H == None and W == None:
+                H,W=height,width
+            x = tf.reshape(x, [-1, G, C // G, H, W])
+            mean, var = tf.nn.moments(x, [2, 3, 4], keep_dims=True)
+            x = (x - mean) / tf.sqrt(var + esp)
+            # per channel gama and beta
+            gama = tf.get_variable(scope + norm_type + 'group_gama', [C], initializer=tf.constant_initializer(1.0))
+            beta = tf.get_variable(scope + norm_type + 'group_beta', [C], initializer=tf.constant_initializer(0.0))
+            gama = tf.reshape(gama, [1, C, 1, 1])
+            beta = tf.reshape(beta, [1, C, 1, 1])
+            output = tf.reshape(x, [-1, C, H, W]) * gama + beta
+            ## tranpose:[bs,c,h,w]to[bs,h,w,c]follwing the paper
+            output = tf.transpose(output, [0, 2, 3, 1])
+        return output
+
+
 # 2D deconvolution
 def deconv2d(x, W, stride=2):
     x_shape = tf.shape(x)
