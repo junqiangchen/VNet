@@ -289,30 +289,6 @@ class Vnet2dModule(object):
         save_path = saver.save(sess, model_path)
         print("Model saved in file:", save_path)
 
-    def prediction_analysic(self):
-        costlist = []
-        for i in range(214):
-            true_img = cv2.imread("D:\Data\PROMISE2012\\test_Vnet\Image\\" + str(i + 1) + ".bmp", cv2.IMREAD_GRAYSCALE)
-            true_mask = cv2.imread("D:\Data\PROMISE2012\\test_Vnet\Image\\" + str(i + 1) + ".bmp",
-                                   cv2.IMREAD_GRAYSCALE)
-            test_images = true_img.astype(np.float)
-            true_mask = true_mask.astype(np.float)
-            # convert from [0:255] => [0.0:1.0]
-            test_images = np.multiply(test_images, 1.0 / 255.0)
-            test_mask = np.multiply(true_mask, 1.0 / 255.0)
-            test_images = np.reshape(test_images, (1, test_images.shape[0], test_images.shape[1], 1))
-            test_mask = np.reshape(test_mask, (1, test_mask.shape[0], test_mask.shape[1], 1))
-            pred, loss = self.sess.run([self.Y_pred, self.cost], feed_dict={self.X: test_images,
-                                                                            self.Y_gt: test_mask,
-                                                                            self.phase: 1,
-                                                                            self.drop_conv: 1})
-            result = np.reshape(pred, (test_images.shape[1], test_images.shape[2]))
-            result = result.astype(np.float32) * 255.
-            result = np.clip(result, 0, 255).astype('uint8')
-            cv2.imwrite("mask" + str(i + 1) + ".bmp", result)
-            print(loss)
-            costlist.append(loss)
-        print(np.mean(np.array(costlist)))
 
     def prediction(self, test_images):
         test_images = test_images.astype(np.float)
