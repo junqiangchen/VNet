@@ -271,14 +271,6 @@ class Vnet2dModule(object):
                                                                                              self.lr: learning_rate,
                                                                                              self.phase: 1,
                                                                                              self.drop_conv: dropout_conv})
-                pred = sess.run(self.Y_pred, feed_dict={self.X: batch_xs,
-                                                        self.Y_gt: batch_ys,
-                                                        self.phase: 1,
-                                                        self.drop_conv: 1})
-                result = np.reshape(pred[0], (512, 512))
-                result = result.astype(np.float32) * 255.
-                result = np.clip(result, 0, 255).astype('uint8')
-                cv2.imwrite("result.bmp", result)
                 print('epochs %d training_loss ,Training_accuracy => %.5f,%.5f ' % (i, train_loss, train_accuracy))
                 save_path = saver.save(sess, model_path, global_step=i)
                 print("Model saved in file:", save_path)
