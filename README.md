@@ -10,6 +10,8 @@ training the model on the GTX1080,it take 20 hours,and i also attach the trained
 
 download dataset：https://promise12.grand-challenge.org/download/
 
+download trained model:https://pan.baidu.com/s/19E9q6HIUeRB8jpuNhvE2Zg, passworld:obwu
+
 ## Result
 
 the loss and model result，the example
