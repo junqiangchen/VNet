@@ -1,4 +1,7 @@
 import SimpleITK as sitk
+from tensorflow.python.framework import graph_util
+from tensorflow.python.framework import graph_io
+import tensorflow as tf
 import numpy as np
 import cv2
 
@@ -6,6 +9,34 @@ import cv2
 This funciton reads a '.mhd' file using SimpleITK and return the image array, origin and spacing of the image.
 read_Image_mask fucntion get image and mask
 '''
+
+
+def convertMetaModelToPbModel(meta_model, pb_model):
+    # Step 1
+    # import the model metagraph
+    saver = tf.train.import_meta_graph(meta_model + '.meta', clear_devices=True)
+    # make that as the default graph
+    graph = tf.get_default_graph()
+    sess = tf.Session()
+    # now restore the variables
+    saver.restore(sess, meta_model)
+    # Step 2
+    # Find the output name
+    for op in graph.get_operations():
+        print(op.name)
+    # Step 3
+    output_graph_def = graph_util.convert_variables_to_constants(
+        sess,  # The session
+        sess.graph_def,  # input_graph_def is useful for retrieving the nodes
+        ["Input", "output/Sigmoid"])
+
+    # Step 4
+    # output folder
+    output_fld = './'
+    # output pb file name
+    output_model_file = 'model.pb'
+    # write the graph
+    graph_io.write_graph(output_graph_def, pb_model + output_fld, output_model_file, as_text=False)
 
 
 def load_itk(filename):
@@ -47,6 +78,5 @@ def read_Image_mask(filespath, outpath, ind=4):
                     cv2.imwrite(outpath + 'Mask\\' + str(number + 1) + '.bmp', cv2.resize(masks[x], (512, 512)))
                     number = number + 1
 
-
-read_Image_mask(filespath='D:\Data\PROMISE2012\\train\\', outpath='D:\Data\PROMISE2012\\train_Vnet\\')
-read_Image_mask(filespath='D:\Data\PROMISE2012\\test\\', outpath='D:\Data\PROMISE2012\\test_Vnet\\', ind=1)
+# read_Image_mask(filespath='D:\Data\PROMISE2012\\train\\', outpath='D:\Data\PROMISE2012\\train_Vnet\\')
+# read_Image_mask(filespath='D:\Data\PROMISE2012\\test\\', outpath='D:\Data\PROMISE2012\\test_Vnet\\', ind=1)
