@@ -1,7 +1,7 @@
 '''
 
 '''
-from Vnet2d.layer import (conv2d, deconv2d, normalizationlayer, crop_and_concat, resnet_Add, weight_xavier_init,
+from promise2012.Vnet2d.layer import (conv2d, deconv2d, normalizationlayer, crop_and_concat, resnet_Add, weight_xavier_init,
                           bias_variable)
 import tensorflow as tf
 import numpy as np
