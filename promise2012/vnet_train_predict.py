@@ -26,7 +26,7 @@ def train():
 
 def predict():
     image = cv2.imread("1.bmp", 0)
-    unet2d = Vnet2dModule(512, 512, 1, model_path="model\\Vnet2dModule.pd")
+    unet2d = Vnet2dModule(512, 512, 1,inference=True, model_path="model\\Vnet2dModule.pd")
     predictvalue = unet2d.prediction(image)
     cv2.imwrite("mask.bmp", predictvalue)
 
