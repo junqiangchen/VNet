@@ -22,7 +22,7 @@ if you Augmentation trained data path is not D:\Data\PROMISE2012\,you should cha
 ## Result
 
 the Challenge result
-![](leadboard29.PNG)
+![](leadboard24.PNG)
 
 the loss and model result，the example
 ![](loss.PNG)
