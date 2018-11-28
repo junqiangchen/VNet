@@ -6,8 +6,8 @@ import numpy as np
 
 
 # Weight initialization (Xavier's init)
-def weight_xavier_init(shape, n_inputs, n_outputs, activefuncation='sigomd', uniform=True, variable_name=None):
-    if activefuncation == 'sigomd':
+def weight_xavier_init(shape, n_inputs, n_outputs, activefuncation='sigmod', uniform=True, variable_name=None):
+    if activefuncation == 'sigmod':
         if uniform:
             init_range = tf.sqrt(6.0 / (n_inputs + n_outputs))
             initial = tf.random_uniform(shape, -init_range, init_range)
