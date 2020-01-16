@@ -21,7 +21,7 @@ def train():
     maskdata = maskdata[perm]
 
     unet2d = Vnet2dModule(512, 512, channels=1, costname="dice coefficient")
-    unet2d.train(imagedata, maskdata, "model\\Vnet2dModule.pd", "log\\", 0.001, 0.5, 2, 4)
+    unet2d.train(imagedata, maskdata, "model\\Vnet2dModule.pd", "log\\", 0.001, 0.5, 1000, 4)
 
 
 def predict():
